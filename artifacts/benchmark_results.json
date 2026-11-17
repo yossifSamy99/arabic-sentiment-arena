@@ -1,0 +1,26 @@
+{
+  "tfidf": {
+    "model_name": "TF-IDF + Logistic Regression",
+    "accuracy": 0.7804,
+    "macro_f1": 0.7802,
+    "avg_latency_ms": 0.793
+  },
+  "fasttext": {
+    "model_name": "FastText + Logistic Regression",
+    "accuracy": 0.699,
+    "macro_f1": 0.6989,
+    "avg_latency_ms": 0.243
+  },
+  "bilstm": {
+    "model_name": "Bi-LSTM (PyTorch)",
+    "accuracy": 0.7826,
+    "macro_f1": 0.7823,
+    "avg_latency_ms": 3.654
+  },
+  "camelbert": {
+    "model_name": "CAMeLBERT-Mix (Fine-tuned)",
+    "accuracy": 0.9442,
+    "macro_f1": 0.9442,
+    "avg_latency_ms": 94.72
+  }
+}
