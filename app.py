@@ -1,5 +1,12 @@
 import subprocess
 import sys
+import spaces
+
+
+@spaces.GPU
+def _register_zerogpu():
+    pass
+
 
 if __name__ == "__main__":
     subprocess.run(

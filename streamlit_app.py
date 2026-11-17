@@ -5,6 +5,14 @@ import plotly.express as px
 import streamlit as st
 import torch
 from transformers import AutoTokenizer, AutoModel
+try:
+    import spaces
+
+    @spaces.GPU
+    def _streamlit_zerogpu_hook():
+        pass
+except ImportError:
+    pass
 
 from core.config import (
     REPO_ID,
