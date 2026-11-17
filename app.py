@@ -84,7 +84,6 @@ def toggle_single_model_dropdown(compare_all: bool):
     return gr.Dropdown(interactive=not compare_all)
 
 
-@spaces.GPU
 def run_live_analysis(tweet_text: str, compare_all: bool, single_model_key: str):
     if not tweet_text or not tweet_text.strip():
         gr.Warning("من فضلك اكتب نص التويتة أولاً.")
@@ -124,7 +123,6 @@ def inspect_batch_csv(file_obj):
     return gr.Dropdown(choices=cols, value=cols[0] if cols else None), info
 
 
-@spaces.GPU
 def run_batch_prediction(file_obj, text_col: str, model_key: str):
     if file_obj is None or not text_col:
         gr.Warning("ارفع ملف CSV واختر عمود النصوص أولاً.")
@@ -221,7 +219,6 @@ def inspect_trainer_csv(file_obj):
     )
 
 
-@spaces.GPU
 def run_custom_training(file_obj, text_col: str, label_col: str):
     if file_obj is None:
         gr.Warning("من فضلك ارفع ملف CSV للتدريب أولاً.")
@@ -260,7 +257,6 @@ def run_custom_training(file_obj, text_col: str, label_col: str):
         return f"❌ **حدث خطأ غير متوقع:** {ex}", pd.DataFrame(), None
 
 
-@spaces.GPU
 def run_custom_prediction(text: str, bundle):
     if bundle is None:
         gr.Warning("درّب النماذج على ملفك أولاً قبل الاختبار.")
@@ -413,6 +409,13 @@ with gr.Blocks(title="Arabic Sentiment Arena") as demo:
                 inputs=[custom_test_box, trainer_state],
                 outputs=custom_test_df,
             )
+            @spaces.GPU
+            def _zerogpu_startup_register():
+                             return ""
+
+            _hidden_gpu_btn = gr.Button(visible=False)
+            _hidden_gpu_btn.click(fn=_zerogpu_startup_register, outputs=gr.Textbox(visible=False))
+            
 
 
 if __name__ == "__main__":
