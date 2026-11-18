@@ -604,15 +604,20 @@ def run_analysis(tweet: str, mode: str, single_key: str):
     for key in keys:
         results.append(get_model(key).predict(tweet))
     cards = result_cards_html(results, keys)
-    rows = "".join(
-        f"<tr>"
-        f"<td>{r['model_name']}</td>"
-        f"<td class='rc-lbl-{label_cls(r[\"label\"])}' style='font-size:.85rem;'>{label_ar(r['label'])}</td>"
-        f"<td style='font-family:\"IBM Plex Mono\",monospace;'>{r['confidence']*100:.1f}%</td>"
-        f"<td style='font-family:\"IBM Plex Mono\",monospace;'>{r['latency_ms']} ms</td>"
-        f"</tr>"
-        for r in results
-    )
+    mono = "font-family:'IBM Plex Mono',monospace;"
+    rows_list = []
+    for r in results:
+        cls_val  = label_cls(r["label"])
+        lbl_val  = label_ar(r["label"])
+        rows_list.append(
+            f"<tr>"
+            f"<td>{r['model_name']}</td>"
+            f"<td class='rc-lbl-{cls_val}' style='font-size:.85rem;'>{lbl_val}</td>"
+            f"<td style='{mono}'>{r['confidence']*100:.1f}%</td>"
+            f"<td style='{mono}'>{r['latency_ms']} ms</td>"
+            f"</tr>"
+        )
+    rows = "".join(rows_list)
     detail = f"""
     <hr class="hdiv">
     <div class="stitle">تفاصيل النتائج</div>
