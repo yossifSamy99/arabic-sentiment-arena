@@ -279,9 +279,12 @@ MODEL_SHORT = {
 PLOT_BASE = dict(
     plot_bgcolor="#0D1117", paper_bgcolor="#0D1117",
     font=dict(family="IBM Plex Mono, monospace", color="#8B949E"),
-    margin=dict(l=10, r=80, t=36, b=10),
     height=280,
 )
+# margin مفصولة عن PLOT_BASE عشان كل chart بيحتاج قيمة مختلفة
+_M_DEFAULT = dict(l=10, r=80,  t=36, b=10)
+_M_LAT     = dict(l=10, r=100, t=36, b=10)
+_M_SCATTER = dict(l=50, r=20,  t=40, b=50)
 GRID = "#21262D"
 
 MODEL_CHOICES = [(v, k) for k, v in MODEL_OPTIONS.items()]
@@ -470,6 +473,7 @@ def make_acc_chart(df: pd.DataFrame):
         yaxis=dict(showgrid=False, tickfont=dict(size=12, color="#C9D1D9")),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0,
                     font=dict(size=11), bgcolor="rgba(0,0,0,0)"),
+        margin=_M_DEFAULT,
     )
     return fig
 
@@ -514,7 +518,7 @@ def make_lat_chart(df: pd.DataFrame):
             # linear scale — أوضح للمستخدم
         ),
         yaxis=dict(showgrid=False, tickfont=dict(size=12, color="#C9D1D9")),
-        margin=dict(l=10, r=100, t=36, b=10),
+        margin=_M_LAT,
     )
     return fig
 
@@ -554,7 +558,7 @@ def make_scatter_chart(df: pd.DataFrame):
             range=[0.65, 1.0], showgrid=True, gridcolor=GRID,
             zeroline=False, tickformat=".0%", tickfont=dict(size=10),
         ),
-        margin=dict(l=50, r=20, t=40, b=50),
+        margin=_M_SCATTER,
     )
     return fig
 
@@ -582,6 +586,7 @@ def make_cmp_chart(tfidf_r, camel_r):
                    tickformat=".0%", zeroline=False, tickfont=dict(size=10)),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0,
                     font=dict(size=11), bgcolor="rgba(0,0,0,0)"),
+        margin=_M_DEFAULT,
     )
     return fig
 
