@@ -226,7 +226,6 @@ MODEL_SHORT = {
 PLOT_CFG = dict(
     plot_bgcolor="#0D1117", paper_bgcolor="#0D1117",
     font=dict(family="IBM Plex Mono, monospace", color="#8B949E"),
-    height=270,
 )
 GRID = "#21262D"
 
@@ -390,6 +389,7 @@ def make_acc_chart(df: pd.DataFrame):
     ))
     fig.update_layout(
         **PLOT_CFG,
+        height=270,
         margin=dict(l=0, r=70, t=36, b=0),
         barmode="group", bargap=0.3, bargroupgap=0.08,
         title=dict(text="Accuracy & Macro F1", font=dict(size=13, color="#C9D1D9"), x=0),
@@ -424,6 +424,7 @@ def make_lat_chart(df: pd.DataFrame):
     )
     fig.update_layout(
         **PLOT_CFG,
+        height=270,
         margin=dict(l=0, r=100, t=36, b=0),
         title=dict(text="CPU Latency (ms/tweet) — الأقل أسرع", font=dict(size=13, color="#C9D1D9"), x=0),
         showlegend=False,
@@ -486,6 +487,7 @@ def make_cmp_chart(tfidf_r, camel_r):
     ))
     fig.update_layout(
         **PLOT_CFG,
+        height=240,
         height=240,
         margin=dict(l=0, r=50, t=36, b=0),
         barmode="group", bargap=0.4, bargroupgap=0.1,
