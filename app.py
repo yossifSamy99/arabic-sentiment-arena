@@ -112,18 +112,6 @@ footer { display: none !important; }
 .kpi-value { font-size:1.75rem; font-weight:700; color:var(--text-p); font-family:'IBM Plex Mono',monospace; line-height:1; }
 .kpi-sub   { font-size:.74rem; color:var(--text-m); margin-top:.25rem; }
 
-/* ═══ Tabs ═══ */
-.tab-nav { display:flex; gap:0; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:4px; margin-bottom:1.25rem; }
-button.tab-btn {
-    flex:1; background:transparent; border:none; cursor:pointer;
-    padding:.45rem .9rem; border-radius:8px; font-size:.875rem; font-weight:500;
-    color:var(--text-m); font-family:'IBM Plex Sans Arabic',sans-serif;
-    transition:all .15s;
-}
-button.tab-btn.active { background:var(--surface2); color:var(--text-p); border:1px solid var(--border); }
-.tab-panel { display:none; }
-.tab-panel.active { display:block; }
-
 /* ═══ Gradio overrides ═══ */
 .gr-box, .gr-form, .gr-panel, .gr-padded,
 div.svelte-1gfkfd6, div.svelte-10ogue4 {
@@ -231,7 +219,8 @@ def get_model(key: str):
 def get_encoder():
     tok = AutoTokenizer.from_pretrained(BASE_CAMELBERT_MODEL)
     enc = AutoModel.from_pretrained(BASE_CAMELBERT_MODEL)
-    enc.to(torch.device("cpu")); enc.eval()
+    enc.to(torch.device("cpu"))
+    enc.eval()
     return tok, enc
 
 
@@ -252,7 +241,8 @@ MODEL_SHORT = {
 }
 
 PLOT_CFG = dict(
-    plot_bgcolor="#0D1117", paper_bgcolor="#0D1117",
+    plot_bgcolor="#0D1117",
+    paper_bgcolor="#0D1117",
     font=dict(family="IBM Plex Mono, monospace", color="#8B949E"),
     margin=dict(l=0, r=70, t=30, b=0),
     height=270,
@@ -451,14 +441,17 @@ def make_scatter_chart(df: pd.DataFrame):
             showlegend=False,
         ))
     fig.update_layout(
-        **PLOT_CFG, height=300,
+        **{
+            **PLOT_CFG,
+            "height": 300,
+            "margin": dict(l=50, r=20, t=20, b=50),
+        },
         xaxis=dict(title="CPU Latency (ms) — log scale", type="log",
                    showgrid=True, gridcolor=GRID, zeroline=False,
                    tickfont=dict(size=10), title_font=dict(size=11)),
         yaxis=dict(title="Accuracy", range=[0.65, 1.0],
                    showgrid=True, gridcolor=GRID, zeroline=False,
                    tickformat=".0%", tickfont=dict(size=10), title_font=dict(size=11)),
-        margin=dict(l=50, r=20, t=20, b=50),
     )
     return fig
 
@@ -492,7 +485,7 @@ def make_cmp_chart(tfidf_r, camel_r):
 
 
 # ──────────────────────────────────────────────────────────────
-# دوال المنطق
+# دوال المنطق (تعمل على CPU مباشرة بدون استهلاك ZeroGPU)
 # ──────────────────────────────────────────────────────────────
 SAMPLE_TWEETS = {
     "— اختر مثالاً جاهزاً —": "",
@@ -506,7 +499,6 @@ def on_example_select(key: str) -> str:
     return SAMPLE_TWEETS.get(key, "")
 
 
-@spaces.GPU
 def run_analysis(tweet: str, compare_all: bool, single_key: str):
     if not tweet or not tweet.strip():
         return '<div class="stat-box stat-error">⚠️ من فضلك اكتب نص التويتة أولاً.</div>', ""
@@ -519,7 +511,6 @@ def run_analysis(tweet: str, compare_all: bool, single_key: str):
 
     cards = result_cards_html(results, keys)
 
-    # جدول تفصيلي
     rows = "".join(
         f"<tr><td>{r['model_name']}</td><td>{r['label']}</td>"
         f"<td style='font-family:\"IBM Plex Mono\",monospace;'>{r['confidence']*100:.1f}%</td>"
@@ -542,11 +533,10 @@ def inspect_batch(file):
         return gr.Dropdown(choices=[], value=None), ""
     df = pd.read_csv(file.name, nrows=5)
     cols = list(df.columns)
-    info = f'<div class="stat-box stat-info">📄 تم التحميل — اختر عمود النصوص</div>'
+    info = '<div class="stat-box stat-info">📄 تم التحميل — اختر عمود النصوص</div>'
     return gr.Dropdown(choices=cols, value=cols[0] if cols else None), info
 
 
-@spaces.GPU
 def run_batch(file, text_col: str, model_key: str):
     if file is None or not text_col:
         return '<div class="stat-box stat-error">⚠️ ارفع ملف واختر عمود النصوص أولاً.</div>', None
@@ -575,7 +565,6 @@ def inspect_trainer(file):
             gr.Dropdown(choices=cols, value=l_def))
 
 
-@spaces.GPU
 def run_training(file, text_col: str, label_col: str):
     if file is None:
         return ('<div class="stat-box stat-error">⚠️ ارفع ملف CSV أولاً.</div>',
@@ -629,7 +618,6 @@ def run_training(file, text_col: str, label_col: str):
                 None, None, None, None)
 
 
-@spaces.GPU
 def run_custom_predict(text: str, bundle):
     if bundle is None:
         return '<div class="stat-box stat-error">⚠️ درّب النماذج أولاً.</div>'
@@ -706,7 +694,7 @@ with gr.Blocks(css=CUSTOM_CSS, title="Arabic Sentiment Arena") as demo:
                 batch_file = gr.File(label="ارفع ملف CSV", file_types=[".csv"])
                 batch_info = gr.HTML()
                 with gr.Row():
-                    batch_col_dd  = gr.Dropdown(label="عمود النصوص", choices=[])
+                    batch_col_dd   = gr.Dropdown(label="عمود النصوص", choices=[])
                     batch_model_dd = gr.Dropdown(choices=MODEL_CHOICES, value="camelbert", label="النموذج")
                 batch_btn     = gr.Button("▶ تشغيل التنبؤ على الملف")
                 batch_status  = gr.HTML()
@@ -754,8 +742,8 @@ with gr.Blocks(css=CUSTOM_CSS, title="Arabic Sentiment Arena") as demo:
 
             trainer_file = gr.File(label="ارفع ملف التدريب (CSV)", file_types=[".csv"])
             with gr.Row():
-                tr_text_dd  = gr.Dropdown(label="عمود النص",       choices=[])
-                tr_label_dd = gr.Dropdown(label="عمود التصنيف",    choices=[])
+                tr_text_dd  = gr.Dropdown(label="عمود النص",    choices=[])
+                tr_label_dd = gr.Dropdown(label="عمود التصنيف", choices=[])
             train_btn    = gr.Button("🚀 ابدأ التدريب اللحظي والمقارنة", variant="primary")
 
             train_status = gr.HTML()
@@ -765,7 +753,9 @@ with gr.Blocks(css=CUSTOM_CSS, title="Arabic Sentiment Arena") as demo:
             test_hint    = gr.HTML()
 
             gr.HTML('<hr class="divider"><div class="sec-title">🧪 اختبر نموذجك الجديد</div>')
-            test_input   = gr.Textbox(label="اكتب جملة", placeholder="اكتب هنا ...", rtl=True)
+            with gr.Row():
+                test_input = gr.Textbox(label="اكتب جملة", placeholder="اكتب هنا واضغط Enter أو زرار الاختبار...", rtl=True, scale=4)
+                test_btn   = gr.Button("اختبار الجملة ◀", variant="secondary", scale=1)
             test_result  = gr.HTML()
 
             # Events
@@ -773,13 +763,13 @@ with gr.Blocks(css=CUSTOM_CSS, title="Arabic Sentiment Arena") as demo:
             train_btn.click(run_training,
                             [trainer_file, tr_text_dd, tr_label_dd],
                             [train_status, train_cmp, train_fig, bundle_state, test_hint])
-            test_input.change(run_custom_predict,
-                              [test_input, bundle_state],
-                              test_result)
+            test_btn.click(run_custom_predict, [test_input, bundle_state], test_result)
+            test_input.submit(run_custom_predict, [test_input, bundle_state], test_result)
 
     # ZeroGPU startup hook
     @spaces.GPU
-    def _zerogpu_hook(): return ""
+    def _zerogpu_hook():
+        return ""
     _hidden = gr.Button(visible=False)
     _hidden.click(_zerogpu_hook, outputs=gr.Textbox(visible=False))
 
