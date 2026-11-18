@@ -3,7 +3,8 @@ title: Arabic Sentiment Arena
 emoji: 🎯
 colorFrom: blue
 colorTo: green
-sdk: streamlit
-app_file: streamlit_app.py
+sdk: gradio
+sdk_version: "4.44.0"
+app_file: app.py
 pinned: false
 ---
