@@ -1,10 +1,10 @@
 """
-Arabic Sentiment Arena — Gradio App (v4 — based on last working version)
+Arabic Sentiment Arena — Gradio App (v4)
 تحسينات على الكود الشغّال:
   1. Radio بدل Checkbox (وضوح بصري)
   2. Latency chart: linear scale + اسم النموذج على البار
   3. Scatter: نقاط أكبر + tooltip كامل
-  4. UX: زرار اختبار منفصل في Tab 3
+  4. UX: زرار اختبار منفصل في Tab 3 + تشغيل على CPU بلا حدود يومية
 """
 
 import os
@@ -222,7 +222,6 @@ MODEL_SHORT = {
     "camelbert": "CAMeLBERT",
 }
 
-# PLOT_CFG بدون margin — كل chart بيحط margin لوحده
 PLOT_CFG = dict(
     plot_bgcolor="#0D1117", paper_bgcolor="#0D1117",
     font=dict(family="IBM Plex Mono, monospace", color="#8B949E"),
@@ -362,7 +361,7 @@ def kpi_html() -> str:
     )
 
 # ══════════════════════════════════════════════════════════════
-# Charts — كل واحد بيحط margin لوحده
+# Charts
 # ══════════════════════════════════════════════════════════════
 def _short(name: str) -> str:
     return (name.replace("CAMeLBERT-Mix (Fine-tuned)", "CAMeLBERT")
@@ -402,7 +401,6 @@ def make_acc_chart(df: pd.DataFrame):
     return fig
 
 def make_lat_chart(df: pd.DataFrame):
-    """Linear scale — أوضح من log scale للمستخدم العادي"""
     df_s = df.sort_values("avg_latency_ms")
     short_names = [_short(n) for n in df_s["model_name"]]
     colors = ["#3FB950" if v < 5 else ("#E3B341" if v < 20 else "#F85149")
@@ -488,7 +486,6 @@ def make_cmp_chart(tfidf_r, camel_r):
     fig.update_layout(
         **PLOT_CFG,
         height=240,
-        height=240,
         margin=dict(l=0, r=50, t=36, b=0),
         barmode="group", bargap=0.4, bargroupgap=0.1,
         xaxis=dict(showgrid=False, tickfont=dict(size=12, color="#C9D1D9")),
@@ -508,7 +505,6 @@ def on_example_select(key: str) -> str:
 def on_mode_change(mode: str):
     return gr.update(visible=(mode == "نموذج واحد"))
 
-@spaces.GPU
 def run_analysis(tweet: str, mode: str, single_key: str):
     if not tweet or not tweet.strip():
         return '<div class="stat-box stat-error">⚠️ من فضلك اكتب نص التويتة أولاً.</div>', ""
@@ -544,7 +540,6 @@ def inspect_batch(file):
     return gr.Dropdown(choices=cols, value=cols[0] if cols else None), \
            '<div class="stat-box stat-info">📄 تم التحميل — اختر عمود النصوص</div>'
 
-@spaces.GPU
 def run_batch(file, text_col: str, model_key: str):
     if file is None or not text_col:
         return '<div class="stat-box stat-error">⚠️ ارفع ملف واختر عمود النصوص أولاً.</div>', None
@@ -566,7 +561,6 @@ def inspect_trainer(file):
     l = cols[1] if len(cols) > 1 else t
     return gr.Dropdown(choices=cols, value=t), gr.Dropdown(choices=cols, value=l)
 
-@spaces.GPU
 def run_training(file, text_col: str, label_col: str):
     if file is None:
         return '<div class="stat-box stat-error">⚠️ ارفع ملف CSV أولاً.</div>', None, None, None, None
@@ -605,7 +599,6 @@ def run_training(file, text_col: str, label_col: str):
     except Exception as ex:
         return f'<div class="stat-box stat-error">❌ خطأ: {ex}</div>', None, None, None, None
 
-@spaces.GPU
 def run_custom_predict(text: str, bundle):
     if bundle is None:
         return '<div class="stat-box stat-error">⚠️ درّب النماذج أولاً.</div>'
