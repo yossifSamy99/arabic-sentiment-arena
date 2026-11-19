@@ -46,16 +46,15 @@ arabic-sentiment-arena/
 ├── artifacts/
 │   └── benchmark_results.json
 ├── core/
-│   ├── .gitignore
 │   ├── __init__.py
 │   ├── base.py
 │   ├── config.py
 │   ├── live_trainer.py
 │   ├── preprocessing.py
 │   └── wrappers.py
-├── dataset on_the_fly Hotel/
-│   ├── downloaded/
-│   └── conv.py
+├── hotel_dataset_for_trainig_testing/
+│   ├── 1000_hotel_samples_for_testing.csv
+│   └── 5000_hotel_samples_for_training.csv
 ├── training/
 │   ├── train_bilstm_colab.py
 │   ├── train_camelbert_colab.py
