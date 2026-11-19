@@ -27,15 +27,16 @@ Trained and evaluated on **~58,000 Arabic tweets** (`80% Train / 10% Validation 
 
 ## 🏗️ System Architecture
 
-The project decouples the **ML inference/training engine (`core/`)** from the **UI layer (`app.py`)** and **model storage (Hugging Face Hub)**:
+The codebase decouples the **ML inference/training engine (`core/`)** from the **Gradio UI (`app.py`)** and **model artifacts (Hugging Face Hub)**:
 
-1. **Dual Preprocessing Pipelines:**
+1. **Unified Predictor Interface (`core/base.py` & `core/wrappers.py`):** All four heterogeneous frameworks (`Scikit-Learn`, `FastText`, `PyTorch`, `Transformers`) implement a standardized base contract returning predicted labels, confidence scores, and exact CPU inference latency.
+2. **Dual Preprocessing Pipelines (`core/preprocessing.py`):**
    * `clean_classical`: Strips URLs, mentions, and emojis while explicitly preserving Arabic negation particles (`مش`, `لا`, `لن`, `لم`, `غير`) so linear and recurrent models retain polarity flips.
    * `clean_transformer`: Retains emojis and punctuation marks (`😍`, `😡`, `🙄`, `!`) as high-signal sentiment cues for `CAMeLBERT-Mix`.
-2. **Application Modules:**
+3. **Interactive Application Modules (`app.py` & `core/live_trainer.py`):**
    * **⚔️ Live Arena:** Real-time 4-model head-to-head inference on single tweets plus batch CSV scoring.
    * **📊 Benchmark Dashboard:** Interactive accuracy, macro-F1, and latency trade-off visualizations.
-   * **⚡ Custom Live Trainer:** On-the-fly training and evaluation comparing `TF-IDF + LR` vs. frozen `CAMeLBERT Embeddings + LR` on user-uploaded Arabic CSV datasets.
+   * **⚡ Custom Live Trainer:** Guardrailed on-the-fly training and evaluation comparing `TF-IDF + LR` vs. frozen `CAMeLBERT Embeddings + LR` on user-uploaded Arabic CSV datasets.
 
 ---
 
@@ -44,26 +45,34 @@ The project decouples the **ML inference/training engine (`core/`)** from the **
 ```text
 arabic-sentiment-arena/
 ├── artifacts/
-│   └── benchmark_results.json
+│   └── benchmark_results.json                  # Unified test set metrics across all 4 models
 ├── core/
 │   ├── __init__.py
-│   ├── base.py
-│   ├── config.py
-│   ├── live_trainer.py
-│   ├── preprocessing.py
-│   └── wrappers.py
+│   ├── base.py                                 # Abstract base class for unified model inference
+│   ├── config.py                               # Hub repo IDs, model registry, and trainer guardrails
+│   ├── live_trainer.py                         # CSV validation & on-the-fly dual model trainer
+│   ├── preprocessing.py                        # Separate classical & transformer text pipelines
+│   └── wrappers.py                             # Model loaders & inference wrappers for all 4 paradigms
 ├── hotel_dataset_for_trainig_testing/
-│   ├── 1000_hotel_samples_for_testing.csv
-│   └── 5000_hotel_samples_for_training.csv
+│   ├── 1000_hotel_samples_for_testing.csv      # Ready-to-use sample CSV for Batch Prediction
+│   └── 5000_hotel_samples_for_training.csv     # Domain-shifted Arabic dataset for Custom Live Trainer
 ├── training/
-│   ├── train_bilstm_colab.py
-│   ├── train_camelbert_colab.py
-│   ├── train_fasttext_colab.py
-│   └── train_tfidf_colab.py
-├── app.py
+│   ├── train_bilstm_colab.py                   # PyTorch Bi-LSTM training & evaluation script
+│   ├── train_camelbert_colab.py                # CAMeLBERT-Mix fine-tuning script (T4 GPU)
+│   ├── train_fasttext_colab.py                 # FastText + Logistic Regression training script
+│   └── train_tfidf_colab.py                    # TF-IDF (1,2)-gram + Logistic Regression training script
+├── app.py                                      # Gradio UI (Dark Theme, RTL layout, Plotly charts)
 ├── README.md
-└── requirements.txt
+└── requirements.txt                            # Locked dependency tree
 ```
+
+---
+
+## 🧪 Ready-to-Use Sample Datasets
+
+To test domain adaptation on out-of-distribution Arabic reviews (Hotel Reviews) directly in the app:
+* Upload `hotel_dataset_for_trainig_testing/5000_hotel_samples_for_training.csv` inside the **⚡ Custom Trainer** tab to train and benchmark custom models on the fly.
+* Upload `hotel_dataset_for_trainig_testing/1000_hotel_samples_for_testing.csv` inside the **⚔️ Live Arena (Batch)** accordion for bulk inference.
 
 ---
 
@@ -76,4 +85,4 @@ pip install -r requirements.txt
 python app.py
 ```
 
-Model weights are fetched automatically on first run from [`YossifSamy99/arabic-nlp-models`](https://huggingface.co/YossifSamy99/arabic-nlp-models) and cached in memory.
+Pre-trained model weights are fetched automatically on first run from [`YossifSamy99/arabic-nlp-models`](https://huggingface.co/YossifSamy99/arabic-nlp-models) and cached in memory.
