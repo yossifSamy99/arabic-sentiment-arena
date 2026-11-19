@@ -204,6 +204,29 @@ label, .gr-label { color:var(--tm) !important; font-size:.82rem !important; }
 .cmp-table th { background:var(--surface2); color:var(--tm); font-weight:500; padding:.55rem 1rem; text-align:right; border-bottom:1px solid var(--border); font-size:.76rem; }
 .cmp-table td { padding:.6rem 1rem; border-bottom:1px solid var(--border); color:var(--tp); }
 .cmp-table tr:last-child td { border-bottom:none; }
+
+/* ── Dropdown: منع تداخل السهم مع النص ── */
+.gradio-container select,
+.gradio-container [data-testid="dropdown"] input,
+.gradio-container .gr-dropdown input {
+    padding-left: 2.2rem !important;
+    padding-right: .75rem !important;
+    text-overflow: ellipsis !important;
+}
+/* السهم على اليسار (RTL) */
+.gradio-container [data-testid="dropdown"] svg,
+.gradio-container .gr-dropdown svg {
+    left: .6rem !important;
+    right: auto !important;
+    pointer-events: none;
+    flex-shrink: 0;
+}
+/* wrapper الـ dropdown — منع التزاحم */
+.gradio-container [data-testid="dropdown"],
+.gradio-container .gr-dropdown {
+    position: relative;
+    overflow: visible !important;
+}
 """
 
 # ══════════════════════════════════════════════════════════════
@@ -435,15 +458,19 @@ def make_lat_chart(df: pd.DataFrame):
 def make_scatter_chart(df: pd.DataFrame):
     keys   = ["tfidf", "fasttext", "bilstm", "camelbert"]
     colors = [MODEL_COLORS.get(k, "#58A6FF") for k in keys]
+    # textposition مختلف لكل نقطة عشان الـ labels ما تتداخلش
+    # TF-IDF و Bi-LSTM قريبين من بعض في الـ X → نحط واحد فوق وواحد تحت
+    text_positions = ["top center", "bottom center", "top center", "bottom center"]
     fig = go.Figure()
     for i, (_, row) in enumerate(df.iterrows()):
         c     = colors[i] if i < len(colors) else "#58A6FF"
         short = _short(row["model_name"])
+        tpos  = text_positions[i] if i < len(text_positions) else "top center"
         fig.add_trace(go.Scatter(
             x=[row["avg_latency_ms"]], y=[row["accuracy"]],
             mode="markers+text",
             marker=dict(size=18, color=c, line=dict(width=2, color="rgba(255,255,255,.2)")),
-            text=[short], textposition="top center",
+            text=[short], textposition=tpos,
             textfont=dict(size=11, color="#C9D1D9", family="IBM Plex Mono,monospace"),
             name=row["model_name"],
             hovertemplate=(
@@ -608,6 +635,51 @@ def run_custom_predict(text: str, bundle):
     preds = predict_custom_tweet(text, bundle, tok, enc)
     return result_cards_html(preds, ["tfidf", "camelbert"])
 
+def inspect_custom_batch(file):
+    if file is None:
+        return gr.Dropdown(choices=[], value=None), ""
+    df = pd.read_csv(file.name, nrows=3)
+    cols = list(df.columns)
+    return (gr.Dropdown(choices=cols, value=cols[0] if cols else None),
+            '<div class="stat-box stat-info">📄 تم التحميل — اختر عمود النصوص</div>')
+
+def run_custom_batch(file, text_col: str, model_choice: str, bundle):
+    if bundle is None:
+        return '<div class="stat-box stat-error">⚠️ درّب النماذج أولاً.</div>', None
+    if file is None or not text_col:
+        return '<div class="stat-box stat-error">⚠️ ارفع ملف واختر عمود النصوص.</div>', None
+
+    df = pd.read_csv(file.name, nrows=MAX_BATCH_PREDICT_ROWS)
+    texts = df[text_col].fillna("").astype(str).tolist()
+    tok, enc = get_encoder()
+
+    results_list = []
+    if model_choice in ("كلا النموذجين", "TF-IDF"):
+        pipe = bundle["tfidf"]["pipeline"]
+        from core.preprocessing import clean_classical
+        import numpy as np
+        cleaned = [clean_classical(t) for t in texts]
+        probs = pipe.predict_proba(cleaned)
+        preds = pipe.predict(cleaned)
+        results_list.append(("tfidf", preds, [p[i] for p, i in zip(probs, [list(pipe.classes_).index(pr) for pr in preds])]))
+
+    if model_choice in ("كلا النموذجين", "CAMeLBERT Emb"):
+        from core.live_trainer import extract_camelbert_embeddings
+        clf = bundle["camelbert_emb"]["classifier"]
+        embs = extract_camelbert_embeddings(texts, tok, enc)
+        probs = clf.predict_proba(embs)
+        preds = clf.predict(embs)
+        results_list.append(("camelbert", preds, [p[i] for p, i in zip(probs, [list(clf.classes_).index(pr) for pr in preds])]))
+
+    for key, preds, confs in results_list:
+        short = MODEL_SHORT.get(key, key)
+        df[f"label_{short}"]      = preds
+        df[f"confidence_{short}"] = [round(float(c), 4) for c in confs]
+
+    out = os.path.join(tempfile.gettempdir(), "custom_batch_preds.csv")
+    df.to_csv(out, index=False, encoding="utf-8-sig")
+    return f'<div class="stat-box stat-success">✅ تم التنبؤ على {len(df)} صف</div>', out
+
 # ══════════════════════════════════════════════════════════════
 # Gradio UI
 # ══════════════════════════════════════════════════════════════
@@ -721,11 +793,28 @@ with gr.Blocks(css=CUSTOM_CSS, title="Arabic Sentiment Arena") as demo:
                 test_btn = gr.Button("اختبار ◀", variant="secondary", scale=1)
             test_result = gr.HTML()
 
+            gr.HTML('<hr class="divider"><div class="sec-title">📂 تنبؤ جماعي على ملف CSV (بالنماذج المتدربة)</div>')
+            with gr.Accordion("Batch Prediction على بياناتك", open=False):
+                with gr.Row():
+                    cb_file   = gr.File(label="ارفع ملف CSV", file_types=[".csv"])
+                    cb_col_dd = gr.Dropdown(label="عمود النصوص", choices=[])
+                cb_info       = gr.HTML()
+                cb_model_dd   = gr.Dropdown(
+                    choices=["كلا النموذجين", "TF-IDF", "CAMeLBERT Emb"],
+                    value="كلا النموذجين",
+                    label="النموذج المستخدم للتنبؤ",
+                )
+                cb_btn        = gr.Button("▶ تشغيل Batch على نموذجي المتدرب", variant="secondary")
+                cb_status     = gr.HTML()
+                cb_dl         = gr.File(label="⬇️ تحميل النتائج")
+
             trainer_file.change(inspect_trainer, trainer_file, [tr_text_dd, tr_label_dd])
             train_btn.click(run_training, [trainer_file, tr_text_dd, tr_label_dd],
                             [train_status, train_cmp, train_fig, bundle_state, test_hint])
             test_btn.click(run_custom_predict, [test_input, bundle_state], test_result)
             test_input.submit(run_custom_predict, [test_input, bundle_state], test_result)
+            cb_file.change(inspect_custom_batch, cb_file, [cb_col_dd, cb_info])
+            cb_btn.click(run_custom_batch, [cb_file, cb_col_dd, cb_model_dd, bundle_state], [cb_status, cb_dl])
 
     @spaces.GPU
     def _zerogpu_hook(): return ""
