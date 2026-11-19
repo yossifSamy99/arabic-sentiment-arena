@@ -43,16 +43,27 @@ The project decouples the **ML inference/training engine (`core/`)** from the **
 
 ```text
 arabic-sentiment-arena/
-├── app.py                          # Gradio UI (Dark Theme, RTL layout, Plotly charts)
-├── requirements.txt                # Locked dependency tree
 ├── artifacts/
-│   └── benchmark_results.json      # Unified test set metrics across all 4 models
+│   └── benchmark_results.json
 ├── core/
-│   ├── config.py                   # Hub repo IDs, model registry, and trainer guardrails
-│   ├── wrappers.py                 # Unified inference wrappers & preprocessing pipelines
-│   └── live_trainer.py             # Custom CSV validation & on-the-fly dual model trainer
-└── training/
-    └── train_models.ipynb          # End-to-end training & evaluation notebook (Colab T4)
+│   ├── .gitignore
+│   ├── __init__.py
+│   ├── base.py
+│   ├── config.py
+│   ├── live_trainer.py
+│   ├── preprocessing.py
+│   └── wrappers.py
+├── dataset on_the_fly Hotel/
+│   ├── downloaded/
+│   └── conv.py
+├── training/
+│   ├── train_bilstm_colab.py
+│   ├── train_camelbert_colab.py
+│   ├── train_fasttext_colab.py
+│   └── train_tfidf_colab.py
+├── app.py
+├── README.md
+└── requirements.txt
 ```
 
 ---
