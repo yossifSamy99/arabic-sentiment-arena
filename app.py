@@ -227,7 +227,6 @@ label, .gr-label { color:var(--tm) !important; font-size:.82rem !important; }
     position: relative;
     overflow: visible !important;
 }
-"""
 
 # ══════════════════════════════════════════════════════════════
 # Constants
